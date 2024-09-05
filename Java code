@@ -1,0 +1,226 @@
+import java.io.*;
+import java.util.Scanner;
+
+class Student implements Serializable {
+    private int rollNumber;
+    private String name;
+    private String address;
+    private int roomNumber;
+
+    public Student(int rollNumber, String name, String address, int roomNumber) {
+        this.rollNumber = rollNumber;
+        this.name = name;
+        this.address = address;
+        this.roomNumber = roomNumber;
+    }
+
+    public int getRollNumber() {
+        return rollNumber;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getAddress() {
+        return address;
+    }
+
+    public int getRoomNumber() {
+        return roomNumber;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
+
+    public void setRoomNumber(int roomNumber) {
+        this.roomNumber = roomNumber;
+    }
+
+    @Override
+    public String toString() {
+        return "Roll Number: " + rollNumber + ", Name: " + name + ", Address: " + address + ", Room Number: " + roomNumber;
+    }
+}
+
+public class HostelManagementSystem {
+
+    private static final String FILE_NAME = "students.dat";
+    private static Scanner scanner = new Scanner(System.in);
+
+    public static void main(String[] args) {
+        File file = new File(FILE_NAME);
+        if (!file.exists()) {
+            try {
+                file.createNewFile();
+            } catch (IOException e) {
+                System.out.println("Error opening the file.");
+                return;
+            }
+        }
+
+        int choice;
+        do {
+            System.out.println("\nHostel Management System");
+            System.out.println("1. Add Student");
+            System.out.println("2. Display Students");
+            System.out.println("3. Search Student");
+            System.out.println("4. Update Student");
+            System.out.println("5. Delete Student");
+            System.out.println("6. Exit");
+            System.out.print("Enter your choice: ");
+            choice = scanner.nextInt();
+
+            switch (choice) {
+                case 1:
+                    addStudent();
+                    break;
+                case 2:
+                    displayStudents();
+                    break;
+                case 3:
+                    searchStudent();
+                    break;
+                case 4:
+                    updateStudent();
+                    break;
+                case 5:
+                    deleteStudent();
+                    break;
+                case 6:
+                    System.out.println("Exiting the program.");
+                    break;
+                default:
+                    System.out.println("Invalid choice. Please try again.");
+            }
+        } while (choice != 6);
+    }
+
+    private static void addStudent() {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(FILE_NAME, true))) {
+            System.out.print("Enter Roll Number: ");
+            int rollNumber = scanner.nextInt();
+            scanner.nextLine();
+            System.out.print("Enter Name: ");
+            String name = scanner.nextLine();
+            System.out.print("Enter Address: ");
+            String address = scanner.nextLine();
+            System.out.print("Enter Room Number: ");
+            int roomNumber = scanner.nextInt();
+
+            Student student = new Student(rollNumber, name, address, roomNumber);
+            oos.writeObject(student);
+            System.out.println("Student added successfully.");
+        } catch (IOException e) {
+            System.out.println("Error adding student.");
+        }
+    }
+
+    private static void displayStudents() {
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(FILE_NAME))) {
+            while (true) {
+                Student student = (Student) ois.readObject();
+                System.out.println(student);
+            }
+        } catch (EOFException e) {
+            // End of file reached
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("Error displaying students.");
+        }
+    }
+
+    private static void searchStudent() {
+        System.out.print("Enter Roll Number to search: ");
+        int rollNumber = scanner.nextInt();
+
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(FILE_NAME))) {
+            boolean found = false;
+            while (true) {
+                Student student = (Student) ois.readObject();
+                if (student.getRollNumber() == rollNumber) {
+                    System.out.println("Student found:");
+                    System.out.println(student);
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                System.out.println("Student not found.");
+            }
+        } catch (EOFException e) {
+            System.out.println("Student not found.");
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("Error searching student.");
+        }
+    }
+
+    private static void updateStudent() {
+        System.out.print("Enter Roll Number to update: ");
+        int rollNumber = scanner.nextInt();
+
+        File tempFile = new File("temp.dat");
+
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(FILE_NAME));
+             ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(tempFile))) {
+
+            boolean found = false;
+            while (true) {
+                Student student = (Student) ois.readObject();
+                if (student.getRollNumber() == rollNumber) {
+                    System.out.print("Enter new Name: ");
+                    scanner.nextLine();
+                    student.setName(scanner.nextLine());
+                    System.out.print("Enter new Address: ");
+                    student.setAddress(scanner.nextLine());
+                    System.out.print("Enter new Room Number: ");
+                    student.setRoomNumber(scanner.nextInt());
+                    found = true;
+                }
+                oos.writeObject(student);
+            }
+        } catch (EOFException e) {
+            if (!found) {
+                System.out.println("Student not found.");
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("Error updating student.");
+        }
+
+        tempFile.renameTo(new File(FILE_NAME));
+    }
+
+    private static void deleteStudent() {
+        System.out.print("Enter Roll Number to delete: ");
+        int rollNumber = scanner.nextInt();
+
+        File tempFile = new File("temp.dat");
+
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(FILE_NAME));
+             ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(tempFile))) {
+
+            boolean found = false;
+            while (true) {
+                Student student = (Student) ois.readObject();
+                if (student.getRollNumber() == rollNumber) {
+                    System.out.println("Student deleted successfully.");
+                    found = true;
+                    continue; // Skip writing the deleted student
+                }
+                oos.writeObject(student);
+            }
+        } catch (EOFException e) {
+            if (!found) {
+                System.out.println("Student not found.");
+            }
+        } catch (IOException | ClassNotFoundException e) {
+            System.out.println("Error deleting student.");
+        }
+
+        tempFile.renameTo(new File(FILE_NAME));
+    }
+}
